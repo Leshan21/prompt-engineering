@@ -12,6 +12,36 @@ Simple local prompt library built with HTML, CSS, and vanilla JavaScript. Stores
 - Dark developer theme styling
 - Interactive 5-star rating per prompt (stored in localStorage)
 - Rating filter (show only prompts with minimum stars)
+- Per-prompt notes section: add, edit, save, delete notes (localStorage)
+
+### Notes Feature
+
+Each prompt card includes a lightweight notes section for contextual tips or usage variants.
+
+Capabilities:
+- Add note (textarea with live character count `current / 500`)
+- Edit note inline (Edit toggles to textarea with Save/Cancel)
+- Delete note (immediate removal)
+- Visual saved badge appears briefly after create/update
+- Validation: prevents empty notes and consecutive duplicate note content (case-insensitive)
+- Limit: maximum 20 notes per prompt (form hides when limit reached)
+- Handles `localStorage` quota errors (shows red banner; note not persisted)
+- Data isolation: notes stored separately per prompt under unique key
+
+Data structure per prompt (stored at key `promptNotes:<promptId>`):
+
+```json
+[
+	{
+		"id": "note-abc123",
+		"content": "Works best with short product descriptions.",
+		"createdAt": 1732286400000,
+		"updatedAt": 1732286400000
+	}
+]
+```
+
+Notes are only rendered client-side; no external dependencies.
 
 ## Usage
 

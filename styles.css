@@ -333,3 +333,159 @@ h2 {
   clip: rect(1px, 1px, 1px, 1px);
   white-space: nowrap;
 }
+
+/* Notes Section */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+}
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.notes-header h4 {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.note-form textarea {
+  background: #181e26;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  line-height: 1.3;
+  padding: 0.45rem 0.5rem;
+  font-family: var(--mono);
+  resize: vertical;
+  min-height: 60px;
+}
+.note-form textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.note-form .note-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.55rem;
+  color: var(--text-dim);
+}
+.note-form button.save-note-btn {
+  align-self: flex-start;
+  font-size: 0.6rem;
+  padding: 0.45rem 0.6rem;
+}
+.note-form button.save-note-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.note-item {
+  background: #181e26;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.5rem 0.55rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  animation: fade 0.25s ease;
+}
+.note-item .note-content {
+  font-size: 0.6rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+.note-actions button {
+  font-size: 0.55rem;
+  padding: 0.35rem 0.5rem;
+}
+.note-edit-area textarea {
+  width: 100%;
+  min-height: 50px;
+  font-size: 0.6rem;
+  background: #1d2430;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.45rem;
+  font-family: var(--mono);
+}
+.note-edit-area textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.saved-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid #22c55e;
+  font-size: 0.55rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--radius-sm);
+  animation: pulse-out 1.4s ease forwards;
+  pointer-events: none;
+}
+@keyframes pulse-out {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.notes-limit-warning {
+  font-size: 0.55rem;
+  color: var(--danger);
+  margin: 0.15rem 0 0.2rem;
+}
+.notes-error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  font-size: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.4rem;
+}
