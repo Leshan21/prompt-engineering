@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prompt Library</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header class="app-header">
+        <h1>Prompt Library</h1>
+    </header>
+    <main class="layout">
+        <section class="form-section" aria-labelledby="formTitle">
+            <h2 id="formTitle">Add New Prompt</h2>
+            <form id="promptForm" autocomplete="off">
+                <div class="field-group">
+                    <label for="promptTitle">Title</label>
+                    <input type="text" id="promptTitle" name="title" placeholder="e.g. Blog Idea Generator" required
+                        maxlength="120" />
+                </div>
+                <div class="field-group">
+                    <label for="promptContent">Content</label>
+                    <textarea id="promptContent" name="content" rows="6" placeholder="Enter the full prompt here..."
+                        required></textarea>
+                </div>
+                <button type="submit" class="btn primary" id="savePromptBtn">Save Prompt</button>
+            </form>
+        </section>
+        <section class="list-section" aria-labelledby="listTitle">
+            <div class="list-header">
+                <h2 id="listTitle">Saved Prompts</h2>
+                <span id="promptCount" class="count-badge" aria-live="polite"></span>
+            </div>
+            <div id="promptCards" class="cards" aria-live="polite"></div>
+            <p id="emptyState" class="empty-state" hidden>No prompts yet. Add one to get started!</p>
+        </section>
+    </main>
+    <footer class="app-footer">
+        <small>Local only. Uses browser localStorage.</small>
+    </footer>
+    <script src="app.js"></script>
+</body>
+
+</html>
