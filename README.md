@@ -19,6 +19,7 @@ Simple local prompt library built with HTML, CSS, and vanilla JavaScript. Stores
 Each prompt card includes a lightweight notes section for contextual tips or usage variants.
 
 Capabilities:
+
 - Add note (textarea with live character count `current / 500`)
 - Edit note inline (Edit toggles to textarea with Save/Cancel)
 - Delete note (immediate removal)
@@ -32,12 +33,12 @@ Data structure per prompt (stored at key `promptNotes:<promptId>`):
 
 ```json
 [
-	{
-		"id": "note-abc123",
-		"content": "Works best with short product descriptions.",
-		"createdAt": 1732286400000,
-		"updatedAt": 1732286400000
-	}
+  {
+    "id": "note-abc123",
+    "content": "Works best with short product descriptions.",
+    "createdAt": 1732286400000,
+    "updatedAt": 1732286400000
+  }
 ]
 ```
 

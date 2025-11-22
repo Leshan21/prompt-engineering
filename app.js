@@ -22,7 +22,9 @@
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter((n) => typeof n === "object" && n && typeof n.content === "string");
+      return parsed.filter(
+        (n) => typeof n === "object" && n && typeof n.content === "string"
+      );
     } catch (e) {
       console.warn("Failed to parse notes", promptId, e);
       return [];
@@ -205,7 +207,8 @@
         if (current.length >= NOTES_MAX) {
           formEl.hidden = true;
           limitWarning.textContent = "Max notes reached.";
-          if (!limitWarning.isConnected) notesWrapper.insertBefore(limitWarning, errorBanner);
+          if (!limitWarning.isConnected)
+            notesWrapper.insertBefore(limitWarning, errorBanner);
         }
       });
       card.appendChild(title);
@@ -416,14 +419,18 @@
     }
     container.remove();
     // update count badge
-    const wrapper = document.querySelector(`[data-notes-wrapper='${promptId}']`);
+    const wrapper = document.querySelector(
+      `[data-notes-wrapper='${promptId}']`
+    );
     if (wrapper) {
       const countEl = wrapper.querySelector(".notes-header .count-badge");
       if (countEl) countEl.textContent = String(notes.length);
       const formEl = wrapper.querySelector("[data-note-form]");
       if (formEl && notes.length < NOTES_MAX) formEl.hidden = false;
       const limitWarning = wrapper.querySelector(".notes-limit-warning");
-      if (limitWarning) limitWarning.textContent = notes.length >= NOTES_MAX ? "Max notes reached." : "";
+      if (limitWarning)
+        limitWarning.textContent =
+          notes.length >= NOTES_MAX ? "Max notes reached." : "";
     }
   }
 
