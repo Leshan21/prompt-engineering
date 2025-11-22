@@ -33,6 +33,16 @@
             <div class="list-header">
                 <h2 id="listTitle">Saved Prompts</h2>
                 <span id="promptCount" class="count-badge" aria-live="polite"></span>
+                <label for="ratingFilter" class="filter-label">
+                    <span class="visually-hidden">Minimum rating filter</span>
+                    <select id="ratingFilter" class="filter-select" aria-label="Minimum rating">
+                        <option value="0">All ★</option>
+                        <option value="4">★ 4+</option>
+                        <option value="3">★ 3+</option>
+                        <option value="2">★ 2+</option>
+                        <option value="1">★ 1+</option>
+                    </select>
+                </label>
             </div>
             <div id="promptCards" class="cards" aria-live="polite"></div>
             <p id="emptyState" class="empty-state" hidden>No prompts yet. Add one to get started!</p>

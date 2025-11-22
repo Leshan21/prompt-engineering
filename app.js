@@ -6,13 +6,21 @@
   const cardsContainer = document.getElementById("promptCards");
   const emptyState = document.getElementById("emptyState");
   const countBadge = document.getElementById("promptCount");
+  const ratingFilterSelect = document.getElementById("ratingFilter");
+  let ratingFilterMin = 0; // 0 = show all
 
   function loadPrompts() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        // Ensure rating field exists
+        return parsed.map((p) => ({
+          ...p,
+          rating: typeof p.rating === "number" ? p.rating : 0,
+        }));
+      }
       return [];
     } catch (e) {
       console.warn("Failed to parse localStorage data", e);
@@ -40,9 +48,13 @@
       return;
     }
     emptyState.hidden = true;
-    countBadge.textContent = String(prompts.length);
+    const filtered =
+      ratingFilterMin > 0
+        ? prompts.filter((p) => (p.rating || 0) >= ratingFilterMin)
+        : prompts;
+    countBadge.textContent = String(filtered.length);
     const fragment = document.createDocumentFragment();
-    prompts.forEach((p) => {
+    filtered.forEach((p) => {
       const card = document.createElement("article");
       card.className = "card fade-in";
       card.setAttribute("data-id", p.id);
@@ -51,6 +63,7 @@
       const preview = document.createElement("p");
       preview.className = "preview";
       preview.textContent = truncateWords(p.content, 15);
+      const ratingEl = createStarRatingComponent(p);
       const actions = document.createElement("div");
       actions.className = "actions";
       const delBtn = document.createElement("button");
@@ -61,6 +74,7 @@
       actions.appendChild(delBtn);
       card.appendChild(title);
       card.appendChild(preview);
+      card.appendChild(ratingEl);
       card.appendChild(actions);
       fragment.appendChild(card);
     });
@@ -82,7 +96,93 @@
       title: title.trim(),
       content: content.trim(),
       createdAt: Date.now(),
+      rating: 0,
     };
+  }
+
+  function setPromptRating(id, stars) {
+    const prompts = loadPrompts();
+    const prompt = prompts.find((p) => p.id === id);
+    if (!prompt) return;
+    const clamped = Math.min(5, Math.max(1, stars));
+    prompt.rating = clamped;
+    savePrompts(prompts);
+    render();
+  }
+
+  function createStarRatingComponent(prompt) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "star-rating";
+    wrapper.setAttribute("role", "radiogroup");
+    wrapper.setAttribute("aria-label", `Rate prompt: ${prompt.title}`);
+    let hoverValue = 0;
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "star";
+      btn.setAttribute("data-value", String(i));
+      btn.setAttribute("role", "radio");
+      btn.setAttribute("aria-checked", prompt.rating === i ? "true" : "false");
+      btn.setAttribute("aria-label", `${i} star${i > 1 ? "s" : ""}`);
+      updateStarVisual(btn, i, prompt.rating, hoverValue);
+      btn.addEventListener("mouseenter", () => {
+        hoverValue = i;
+        refreshStars(wrapper, prompt.rating, hoverValue);
+      });
+      btn.addEventListener("mouseleave", () => {
+        hoverValue = 0;
+        refreshStars(wrapper, prompt.rating, hoverValue);
+      });
+      btn.addEventListener("click", () => setPromptRating(prompt.id, i));
+      btn.addEventListener("keydown", (e) => {
+        if (["ArrowRight", "ArrowUp"].includes(e.key)) {
+          e.preventDefault();
+          setPromptRating(
+            prompt.id,
+            (prompt.rating || 0) + 1 > 5 ? 5 : (prompt.rating || 0) + 1
+          );
+        } else if (["ArrowLeft", "ArrowDown"].includes(e.key)) {
+          e.preventDefault();
+          setPromptRating(
+            prompt.id,
+            (prompt.rating || 1) - 1 < 1 ? 1 : (prompt.rating || 1) - 1
+          );
+        } else if (["Enter", " "].includes(e.key)) {
+          e.preventDefault();
+          setPromptRating(prompt.id, i);
+        }
+      });
+      wrapper.appendChild(btn);
+    }
+    return wrapper;
+  }
+
+  function refreshStars(wrapper, currentRating, hoverValue) {
+    const stars = wrapper.querySelectorAll(".star");
+    stars.forEach((star) => {
+      const value = Number(star.getAttribute("data-value"));
+      updateStarVisual(star, value, currentRating, hoverValue);
+    });
+  }
+
+  function updateStarVisual(el, starValue, currentRating, hoverValue) {
+    const activeBoundary = hoverValue > 0 ? hoverValue : currentRating;
+    if (starValue <= activeBoundary) {
+      el.classList.add("filled");
+      el.textContent = "★";
+    } else {
+      el.classList.remove("filled");
+      el.textContent = "☆";
+    }
+  }
+
+  function handleRatingFilterChange() {
+    ratingFilterMin = Number(ratingFilterSelect.value) || 0;
+    render();
+  }
+
+  if (ratingFilterSelect) {
+    ratingFilterSelect.addEventListener("change", handleRatingFilterChange);
   }
 
   form.addEventListener("submit", (e) => {
