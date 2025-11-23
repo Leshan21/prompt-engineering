@@ -123,3 +123,83 @@ window.__promptMetadataAPI.trackModel(...)
 window.__promptMetadataAPI.updateTimestamps(...)
 window.__promptMetadataAPI.estimateTokens(...)
 ```
+
+## Export / Import System
+
+Versioned JSON export/import for prompts (excluding notes) enables backup, transfer, and conflict-managed merges.
+
+### Export Schema (version `1.0.0`)
+
+```json
+{
+  "version": "1.0.0",
+  "exportedAt": "2025-11-23T12:34:56.789Z",
+  "stats": {
+    "totalPrompts": 12,
+    "averageRating": 3.42,
+    "mostUsedModel": "gpt-4o",
+    "models": { "gpt-4o": 6, "llama-3-70b": 4, "unknown-model": 2 }
+  },
+  "prompts": [
+    {
+      "id": "prompt-123",
+      "title": "Blog Idea Generator",
+      "content": "You are a creative assistant...",
+      "createdAt": 1732360000000,
+      "rating": 5,
+      "metadata": {
+        "model": "gpt-4o",
+        "createdAt": "2025-11-23T09:10:11.123Z",
+        "updatedAt": "2025-11-23T09:10:11.123Z",
+        "tokenEstimate": { "min": 42, "max": 56, "confidence": "high" }
+      }
+    }
+  ]
+}
+```
+
+Notes are not exported (kept separate per prompt key). Future versions may include them after schema expansion.
+
+### How to Export
+
+1. Click `Export` in the header.
+2. A file named `prompt-library-export-<timestamp>.json` downloads.
+3. Store it safely (e.g., commit to a private repo).
+
+### How to Import
+
+1. Click `Import` and select a previously exported `.json` file.
+2. When prompted: OK = replace all existing prompts, Cancel = merge.
+3. If merging and duplicate IDs are found, a conflict dialog appears for each duplicate:
+   - `keep-existing` – retain current prompt, ignore imported one.
+   - `overwrite` – replace current prompt with imported version.
+   - `new-id` – import a cloned copy with a new unique ID.
+4. After resolving, changes apply and a status message confirms success.
+
+### Backup & Rollback
+
+Before import changes, a backup snapshot is stored at `localStorage` key `promptLibrary.__backup.last`. If an error occurs during import or conflict resolution, the system attempts automatic rollback to the backup.
+
+### Validation & Integrity
+
+Importer validates:
+
+- Root shape (`version`, `exportedAt`, `stats`, `prompts` array)
+- Supported version prefix (`1.`)
+- Each prompt object and nested metadata structure
+
+Errors produce a red status line; no partial data is committed.
+
+### Limitations
+
+- Notes are not included; manual migration needed if desired.
+- Only schema version `1.x` supported currently.
+- Very large files may exceed browser memory in low-resource environments.
+
+### Status Messages
+
+Import/export progress and errors appear in the footer. Messages auto-dismiss after ~8 seconds.
+
+### Extending the Schema
+
+Add new top-level keys; bump `version` (e.g., `1.1.0`). Maintain backward compatibility by optional chaining when reading old exports.

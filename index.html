@@ -11,6 +11,11 @@
 <body>
     <header class="app-header">
         <h1>Prompt Library</h1>
+        <div class="tool-bar">
+            <button type="button" id="exportBtn" class="btn">Export</button>
+            <button type="button" id="importBtn" class="btn">Import</button>
+            <input type="file" id="importFileInput" accept="application/json" hidden />
+        </div>
     </header>
     <main class="layout">
         <section class="form-section" aria-labelledby="formTitle">
@@ -59,6 +64,7 @@
     </main>
     <footer class="app-footer">
         <small>Local only. Uses browser localStorage.</small>
+        <div id="importExportStatus" class="status-messages" aria-live="polite"></div>
     </footer>
     <script src="app.js"></script>
 </body>

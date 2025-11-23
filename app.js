@@ -9,6 +9,11 @@
   const emptyState = document.getElementById("emptyState");
   const countBadge = document.getElementById("promptCount");
   const ratingFilterSelect = document.getElementById("ratingFilter");
+  const exportBtn = document.getElementById("exportBtn");
+  const importBtn = document.getElementById("importBtn");
+  const importFileInput = document.getElementById("importFileInput");
+  const statusMessages = document.getElementById("importExportStatus");
+  const EXPORT_VERSION = "1.0.0";
   let ratingFilterMin = 0; // 0 = show all
   const NOTES_MAX = 20;
   const NOTES_CHAR_MAX = 500;
@@ -656,6 +661,307 @@
 
   // Expose for potential debugging (optional)
   window.__promptMetadataAPI = { trackModel, updateTimestamps, estimateTokens };
+
+  // ---------------- Export / Import System ----------------
+  function setStatus(message, type) {
+    if (!statusMessages) return;
+    const el = document.createElement("div");
+    el.className = `status-line ${type || "info"}`;
+    el.textContent = message;
+    statusMessages.appendChild(el);
+    setTimeout(() => {
+      el.remove();
+    }, 8000);
+  }
+
+  function validatePromptObject(p) {
+    if (!p || typeof p !== "object") throw new Error("Prompt must be object");
+    if (typeof p.id !== "string" || !p.id.trim()) throw new Error("Invalid id");
+    if (typeof p.title !== "string" || !p.title.trim())
+      throw new Error("Invalid title");
+    if (typeof p.content !== "string" || !p.content.trim())
+      throw new Error("Invalid content");
+    if (typeof p.rating !== "number" || p.rating < 0 || p.rating > 5)
+      throw new Error("Invalid rating");
+    if (!p.metadata || typeof p.metadata !== "object")
+      throw new Error("Missing metadata");
+    if (typeof p.metadata.model !== "string" || !p.metadata.model.trim())
+      throw new Error("Invalid metadata.model");
+    if (typeof p.metadata.createdAt !== "string")
+      throw new Error("Invalid metadata.createdAt");
+    if (typeof p.metadata.updatedAt !== "string")
+      throw new Error("Invalid metadata.updatedAt");
+    if (
+      !p.metadata.tokenEstimate ||
+      typeof p.metadata.tokenEstimate !== "object"
+    )
+      throw new Error("Missing tokenEstimate");
+    return true;
+  }
+
+  function computeStats(prompts) {
+    const totalPrompts = prompts.length;
+    let sumRating = 0;
+    const modelCounts = {};
+    prompts.forEach((p) => {
+      sumRating += typeof p.rating === "number" ? p.rating : 0;
+      const m = p.metadata && p.metadata.model ? p.metadata.model : "unknown";
+      modelCounts[m] = (modelCounts[m] || 0) + 1;
+    });
+    let mostUsedModel = null;
+    let maxCount = 0;
+    Object.keys(modelCounts).forEach((m) => {
+      if (modelCounts[m] > maxCount) {
+        maxCount = modelCounts[m];
+        mostUsedModel = m;
+      }
+    });
+    const averageRating =
+      totalPrompts === 0 ? 0 : Number((sumRating / totalPrompts).toFixed(2));
+    return { totalPrompts, averageRating, mostUsedModel, models: modelCounts };
+  }
+
+  function buildExportPayload(prompts) {
+    prompts.forEach(validatePromptObject);
+    return {
+      version: EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      stats: computeStats(prompts),
+      prompts,
+    };
+  }
+
+  function triggerDownload(filename, content) {
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 1000);
+  }
+
+  function exportPrompts() {
+    try {
+      const prompts = loadPrompts();
+      const payload = buildExportPayload(prompts);
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      triggerDownload(
+        `prompt-library-export-${ts}.json`,
+        JSON.stringify(payload, null, 2)
+      );
+      setStatus("Export completed", "success");
+    } catch (e) {
+      setStatus("Export failed: " + e.message, "error");
+    }
+  }
+
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () =>
+        reject(reader.error || new Error("File read error"));
+      reader.readAsText(file);
+    });
+  }
+
+  function backupExisting(prompts) {
+    try {
+      const key = "promptLibrary.__backup.last";
+      localStorage.setItem(
+        key,
+        JSON.stringify({ savedAt: new Date().toISOString(), prompts })
+      );
+      return key;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function restoreBackup(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.prompts)) return false;
+      savePrompts(parsed.prompts);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function validateImportStructure(obj) {
+    if (!obj || typeof obj !== "object") throw new Error("Root must be object");
+    if (typeof obj.version !== "string") throw new Error("Missing version");
+    if (!obj.version.startsWith("1.")) throw new Error("Unsupported version");
+    if (typeof obj.exportedAt !== "string")
+      throw new Error("Missing exportedAt");
+    if (!obj.stats || typeof obj.stats !== "object")
+      throw new Error("Missing stats");
+    if (!Array.isArray(obj.prompts)) throw new Error("prompts must be array");
+    obj.prompts.forEach(validatePromptObject);
+    return true;
+  }
+
+  function showConflictModal(duplicates, importedById, existingById, proceed) {
+    const overlay = document.createElement("div");
+    overlay.className = "conflict-overlay";
+    const modal = document.createElement("div");
+    modal.className = "conflict-modal";
+    const h = document.createElement("h3");
+    h.textContent = "Duplicate IDs Found";
+    const p = document.createElement("p");
+    p.textContent =
+      "Resolve each duplicate: keep existing, overwrite, or new id.";
+    const list = document.createElement("div");
+    duplicates.forEach((id) => {
+      const row = document.createElement("div");
+      row.className = "conflict-row";
+      const label = document.createElement("div");
+      label.textContent = id;
+      const select = document.createElement("select");
+      select.setAttribute("data-conflict-id", id);
+      ["keep-existing", "overwrite", "new-id"].forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        select.appendChild(o);
+      });
+      row.appendChild(label);
+      row.appendChild(select);
+      list.appendChild(row);
+    });
+    const actions = document.createElement("div");
+    actions.className = "conflict-actions";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.textContent = "Cancel";
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.textContent = "Apply";
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    modal.appendChild(h);
+    modal.appendChild(p);
+    modal.appendChild(list);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    cancelBtn.addEventListener("click", () => {
+      overlay.remove();
+      setStatus("Import cancelled", "info");
+    });
+    confirmBtn.addEventListener("click", () => {
+      const resolutions = {};
+      list.querySelectorAll("select[data-conflict-id]").forEach((sel) => {
+        resolutions[sel.getAttribute("data-conflict-id")] = sel.value;
+      });
+      overlay.remove();
+      proceed(resolutions);
+    });
+  }
+
+  async function handleImportedPayload(importObj) {
+    const existing = loadPrompts();
+    const backupKey = backupExisting(existing);
+    const existingById = {};
+    existing.forEach((p) => (existingById[p.id] = p));
+    const importedPrompts = importObj.prompts;
+    const importedById = {};
+    importedPrompts.forEach((p) => (importedById[p.id] = p));
+    const duplicateIds = importedPrompts
+      .filter((p) => existingById[p.id])
+      .map((p) => p.id);
+    const replaceAll = confirm(
+      "Replace existing prompts with imported set? Click OK to replace, Cancel to merge."
+    );
+    if (replaceAll) {
+      try {
+        savePrompts(importedPrompts);
+        render();
+        setStatus("Import (replace) completed", "success");
+      } catch (e) {
+        if (backupKey) restoreBackup(backupKey);
+        setStatus("Import failed: " + e.message, "error");
+      }
+      return;
+    }
+    if (duplicateIds.length === 0) {
+      try {
+        savePrompts([...importedPrompts, ...existing]);
+        render();
+        setStatus("Import (merge) completed", "success");
+      } catch (e) {
+        if (backupKey) restoreBackup(backupKey);
+        setStatus("Import failed: " + e.message, "error");
+      }
+      return;
+    }
+    showConflictModal(
+      duplicateIds,
+      importedById,
+      existingById,
+      (resolutions) => {
+        try {
+          const final = [...existing];
+          duplicateIds.forEach((id) => {
+            const action = resolutions[id];
+            if (action === "overwrite") {
+              const idx = final.findIndex((p) => p.id === id);
+              if (idx !== -1) final[idx] = importedById[id];
+            } else if (action === "new-id") {
+              const clone = {
+                ...importedById[id],
+                id:
+                  importedById[id].id + "-imported-" + Date.now().toString(36),
+              };
+              final.unshift(clone);
+            }
+          });
+          importedPrompts.forEach((p) => {
+            if (!duplicateIds.includes(p.id)) final.unshift(p);
+          });
+          savePrompts(final);
+          render();
+          setStatus("Import (merge + conflicts resolved) completed", "success");
+        } catch (e) {
+          if (backupKey) restoreBackup(backupKey);
+          setStatus("Conflict resolution failed: " + e.message, "error");
+        }
+      }
+    );
+  }
+
+  async function importFromFile(file) {
+    try {
+      const text = await readFileAsText(file);
+      const obj = JSON.parse(text);
+      validateImportStructure(obj);
+      await handleImportedPayload(obj);
+    } catch (e) {
+      setStatus("Import aborted: " + e.message, "error");
+    } finally {
+      importFileInput.value = "";
+    }
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportPrompts);
+  }
+  if (importBtn && importFileInput) {
+    importBtn.addEventListener("click", () => importFileInput.click());
+    importFileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      importFromFile(file);
+    });
+  }
 
   // Initial render
   render();
