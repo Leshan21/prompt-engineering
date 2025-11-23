@@ -13,6 +13,7 @@ Simple local prompt library built with HTML, CSS, and vanilla JavaScript. Stores
 - Interactive 5-star rating per prompt (stored in localStorage)
 - Rating filter (show only prompts with minimum stars)
 - Per-prompt notes section: add, edit, save, delete notes (localStorage)
+- Prompt metadata tracking (model, timestamps, token estimation, confidence)
 
 ### Notes Feature
 
@@ -59,6 +60,7 @@ xdg-open index.html
 - `index.html` – Markup structure and form
 - `styles.css` – Dark themed, responsive styles
 - `app.js` – Logic: localStorage CRUD + rendering
+- Metadata system: attaches a `metadata` object per prompt with model info and token estimates
 
 ## Storage Key
 
@@ -71,3 +73,53 @@ Uses `promptLibrary.prompts` in `localStorage`.
 - Preview truncation is word-based (15 words)
 - Keyboard accessible rating (arrow keys + enter/space)
 - Rating stored as integer 0–5 (0 = unrated)
+- Metadata confidence colors: green (high), yellow (medium), red (low)
+
+## Metadata Tracking System
+
+Each prompt receives a metadata object when created (or retrofitted for legacy prompts):
+
+```json
+{
+  "model": "gpt-4o",
+  "createdAt": "2025-11-23T12:00:00.000Z",
+  "updatedAt": "2025-11-23T12:00:00.000Z",
+  "tokenEstimate": {
+    "min": 42,
+    "max": 56,
+    "confidence": "high"
+  }
+}
+```
+
+### Functions
+
+- `trackModel(modelName: string, content: string)` – validates model name, generates ISO timestamps, detects if content looks like code, estimates tokens.
+- `updateTimestamps(metadata: MetadataObject)` – refreshes `updatedAt`, ensures it is not earlier than `createdAt`.
+- `estimateTokens(text: string, isCode: boolean)` – calculates a rough range using: `min = 0.75 * word_count`, `max = 0.25 * character_count`; both multiplied by `1.3` if `isCode`.
+
+Confidence levels are determined by the `max` estimate: `<1000 = high`, `1000–5000 = medium`, `>5000 = low`.
+
+### Validation Rules
+
+- Model name: non-empty string, ≤ 100 chars.
+- Dates: ISO 8601 (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+- Errors throw with descriptive messages; UI surfaces basic alerts.
+
+### UI Display
+
+Metadata appears on each card showing model, human-readable timestamps, token range, and color-coded confidence. A "Refresh Metadata" button updates the `updatedAt` timestamp only.
+
+### Code Detection Heuristic
+
+Automatically flags content as code if it contains common code keywords (`function`, `class`, `import`, backticks, etc.). You can override by checking the "Treat content as code" box when creating a prompt.
+
+### Updating / Access
+
+Runtime API exposed for debugging:
+
+```js
+window.__promptMetadataAPI.trackModel(...)
+window.__promptMetadataAPI.updateTimestamps(...)
+window.__promptMetadataAPI.estimateTokens(...)
+```

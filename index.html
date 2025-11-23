@@ -17,6 +17,11 @@
             <h2 id="formTitle">Add New Prompt</h2>
             <form id="promptForm" autocomplete="off">
                 <div class="field-group">
+                    <label for="promptModelName">Model Name</label>
+                    <input type="text" id="promptModelName" name="model" placeholder="e.g. gpt-4o, llama-3-70b" required
+                        maxlength="100" />
+                </div>
+                <div class="field-group">
                     <label for="promptTitle">Title</label>
                     <input type="text" id="promptTitle" name="title" placeholder="e.g. Blog Idea Generator" required
                         maxlength="120" />
@@ -25,6 +30,10 @@
                     <label for="promptContent">Content</label>
                     <textarea id="promptContent" name="content" rows="6" placeholder="Enter the full prompt here..."
                         required></textarea>
+                </div>
+                <div class="field-group inline">
+                    <label for="isCodeFlag">Treat content as code?</label>
+                    <input type="checkbox" id="isCodeFlag" name="isCode" />
                 </div>
                 <button type="submit" class="btn primary" id="savePromptBtn">Save Prompt</button>
             </form>
